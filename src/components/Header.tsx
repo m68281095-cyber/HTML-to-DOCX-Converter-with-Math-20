@@ -1,4 +1,5 @@
-import { FileCode, Moon, Sun, ArrowLeftRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { FileCode, Moon, Sun, ArrowLeftRight, Smartphone } from "lucide-react";
 import { ConversionConfig, PageOrientation } from "../types";
 
 interface HeaderProps {
@@ -9,6 +10,47 @@ interface HeaderProps {
 }
 
 export default function Header({ config, onChangeConfig, onClear, hasFile }: HeaderProps) {
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      // Stash the event so it can be triggered later.
+      setDeferredPrompt(e);
+      // Update UI notify the user they can install the PWA
+      setIsInstallable(true);
+      console.log("[PWA] beforeinstallprompt event fired and captured.");
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    // Filter out if currently running in PWA standalone window mode
+    if (
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone === true
+    ) {
+      setIsInstallable(false);
+    }
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    // Show the install prompt
+    deferredPrompt.prompt();
+    // Wait for the user to respond to the prompt
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`[PWA] Installation prompt user decision outcome: ${outcome}`);
+    // Reset state
+    setDeferredPrompt(null);
+    setIsInstallable(false);
+  };
+
   const setOrientation = (val: PageOrientation) => {
     onChangeConfig({ orientation: val });
   };
@@ -116,6 +158,18 @@ export default function Header({ config, onChangeConfig, onClear, hasFile }: Hea
                 </button>
               </div>
             </div>
+          )}
+
+          {isInstallable && (
+            <button
+              type="button"
+              onClick={handleInstallClick}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-md px-3 py-1.5 flex items-center gap-1.5 transition-all shadow-sm animate-pulse shrink-0 border border-blue-700 cursor-pointer"
+              title="এই অ্যাপ্লিকেশনটি ডিভাইসে ইনস্টল করুন"
+            >
+              <Smartphone className="h-4 w-4" />
+              <span>App ইনস্টল করুন</span>
+            </button>
           )}
 
           {/* Theme switcher toggle / Segmented controls for light & dark */}

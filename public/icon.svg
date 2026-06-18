@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#1D4ED8" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-opacity="0.15" />
+    </filter>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" rx="100" fill="#F8F9FA" />
+  
+  <!-- Icon base group -->
+  <g filter="url(#shadow)">
+    <!-- Document background sheet -->
+    <rect x="128" y="100" width="256" height="312" rx="16" fill="url(#blueGrad)" />
+    
+    <!-- Decorative page fold/lines -->
+    <rect x="168" y="150" width="176" height="12" rx="6" fill="#FFFFFF" fill-opacity="0.6" />
+    <rect x="168" y="186" width="176" height="12" rx="6" fill="#FFFFFF" fill-opacity="0.6" />
+    
+    <!-- Central math formula box visual -->
+    <rect x="168" y="235" width="176" height="130" rx="12" fill="#1E293B" />
+    
+    <!-- Math sigma symbol -->
+    <path d="M 230 265 L 282 265 L 282 277 L 244 300 L 282 323 L 282 335 L 230 335 L 230 323 L 264 323 L 237 300 L 264 277 L 230 277 Z" fill="url(#goldGrad)" />
+  </g>
+</svg>
