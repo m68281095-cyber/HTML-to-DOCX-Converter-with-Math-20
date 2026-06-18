@@ -276,7 +276,7 @@ export default function App() {
 
   return (
     <div
-      className={`flex flex-col min-h-screen ${config.theme === "dark" ? "bg-slate-900 text-slate-100" : "bg-[#F8F9FA] text-[#1A1A1A]"} font-sans antialiased selection:bg-blue-600 selection:text-white overflow-hidden`}
+      className={`flex flex-col min-h-screen ${config.theme === "dark" ? "bg-slate-900 text-slate-100" : "bg-[#F8F9FA] text-[#1A1A1A]"} font-sans antialiased selection:bg-blue-600 selection:text-white overflow-y-auto lg:overflow-hidden lg:h-screen lg:min-h-0`}
     >
       {/* Top Application Bar */}
       <Header
@@ -289,7 +289,7 @@ export default function App() {
       />
 
       {/* Main Core Viewport */}
-      <main className="flex-grow flex flex-col overflow-hidden">
+      <main className="flex-grow flex flex-col lg:overflow-hidden">
         {fileData ? (
           <ErrorBoundary>
             {validationErrors.length > 0 && (

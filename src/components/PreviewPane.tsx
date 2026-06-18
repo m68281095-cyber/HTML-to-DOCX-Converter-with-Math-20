@@ -316,7 +316,7 @@ export default function PreviewPane({
   }, [processedContent, config.englishFont, config.banglaFont]);
 
   return (
-    <div className={`flex flex-col flex-1 h-[calc(100vh-112px)] ${config.theme === "dark" ? "bg-slate-900" : "bg-[#F8F9FA]"}`}>
+    <div className={`flex flex-col flex-1 h-auto lg:h-[calc(100vh-112px)] min-h-[500px] ${config.theme === "dark" ? "bg-slate-900" : "bg-[#F8F9FA]"}`}>
       {/* Mini control strip */}
       <div className={`flex items-center justify-between border-b px-6 py-2 shrink-0 select-none ${config.theme === "dark" ? "bg-slate-800 border-slate-700" : "bg-white border-gray-300"}`}>
         <div className="flex items-center space-x-3 text-xs">
@@ -552,10 +552,10 @@ export default function PreviewPane({
       </div>
 
       {/* Side by side Preview workspace */}
-      <div className="grid grid-cols-1 md:grid-cols-2 flex-1 overflow-hidden h-full">
+      <div className="grid grid-cols-1 lg:grid-cols-2 flex-1 lg:overflow-hidden lg:h-full h-auto">
         
         {/* Left Side: Live HTML Input preview */}
-        <div className="flex flex-col border-r border-gray-300 h-full overflow-hidden select-none bg-white">
+        <div className="flex flex-col border-b lg:border-b-0 lg:border-r border-gray-300 h-auto lg:h-full lg:overflow-hidden select-none bg-white font-sans">
           <div className="h-10 flex items-center justify-between px-4 bg-gray-50 border-b border-gray-300">
             <span className="text-[11px] font-bold text-gray-550 uppercase tracking-wider">Source Code Panel</span>
             <div className="flex gap-1.5 animate-pulse">
@@ -581,7 +581,7 @@ export default function PreviewPane({
         </div>
 
         {/* Right Side: MS Word style Portrait/Landscape visual rendering preview */}
-        <div className="flex flex-col h-full overflow-hidden select-none bg-[#E9EBEF]">
+        <div className="flex flex-col h-auto lg:h-full lg:overflow-hidden select-none bg-[#E9EBEF]">
           <div className="h-10 flex items-center justify-between px-4 bg-gray-200 border-b border-gray-350">
             <span className="text-[11px] font-bold text-gray-700 uppercase tracking-wider font-mono">Word Layout Engine Pre-render</span>
             <span className="bg-gray-300 text-gray-750 px-2 py-0.5 rounded-sm text-[9px] font-mono font-black scale-95 border border-gray-400">
