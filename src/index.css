@@ -1,0 +1,94 @@
+@import "tailwindcss";
+@import "katex/dist/katex.min.css";
+
+/* BCC Purno Semibold and Cambria Math local font bindings for precise rendering */
+@font-face {
+  font-family: 'BCC Purno Semibold';
+  src: local('BCC Purno Semibold'),
+       local('BCC PURNO Semibold'),
+       local('BCC Purno'),
+       local('BCCP_Semibold'),
+       local('Purno Semibold'),
+       local('Purno');
+}
+
+@font-face {
+  font-family: 'Cambria Math';
+  src: local('Cambria Math'),
+       local('CambriaMath'),
+       local('Cambria');
+}
+
+/* Fine-tune typography and layout animations */
+@layer base {
+  body {
+    background-color: #f8fafc;
+    color: #0f172a;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Document sheet styles emulating Word content structures */
+.prose table {
+  width: 100%;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-collapse: collapse;
+}
+
+.prose th, .prose td {
+  border: 1px solid #cbd5e1;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.prose th {
+  background-color: #f1f5f9;
+  font-weight: 600;
+}
+
+.prose blockquote {
+  padding-left: 1rem;
+  border-left: 4px solid #3b82f6;
+  font-style: italic;
+  color: #475569;
+  background-color: #f8fafc;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Animations transitions */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out forwards;
+}
+
+/* Force grey/slate/zinc/neutral/stone text classes to black when parent has force-black-text class */
+.force-black-text [class*="text-gray-"],
+.force-black-text [class*="text-slate-"],
+.force-black-text [class*="text-zinc-"],
+.force-black-text [class*="text-neutral-"],
+.force-black-text [class*="text-stone-"],
+.force-black-text blockquote {
+  color: #000000 !important;
+}
+
+/* Ensure the browser preview also uses a clear 13px base body text matching the 13pt DOCX output style */
+.prose p, .prose li, .prose td, .prose blockquote {
+  font-size: 13px !important;
+}
+
+

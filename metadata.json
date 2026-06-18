@@ -1,0 +1,8 @@
+{
+  "name": "HTML to DOCX Converter with Math 20",
+  "description": "An advanced full-stack application to convert rich HTML files containing Tailwind CSS styles and Math (MathML/LaTeX) equations into Microsoft Word native DOCX files, preserving math layouts and style sheets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
