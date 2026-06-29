@@ -1,5 +1,5 @@
-import React, { useState, useRef } from "react";
-import { Upload, FileCode, CheckCircle, AlertCircle, HelpCircle } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { Upload, FileCode, CheckCircle, AlertCircle, HelpCircle, ClipboardPaste } from "lucide-react";
 
 interface HTMLUploaderProps {
   onFileSelect: (file: File) => void;
@@ -11,6 +11,38 @@ export default function HTMLUploader({ onFileSelect, isLoading, progress }: HTML
   const [isDragActive, setIsDragActive] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleGlobalPaste = (e: ClipboardEvent) => {
+      // Ignore if pasting inside an input or textarea
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      
+      const pastedText = e.clipboardData?.getData("text/html") || e.clipboardData?.getData("text/plain");
+      if (pastedText && pastedText.trim().length > 0) {
+        const file = new File([pastedText], "pasted_content.html", { type: "text/html" });
+        validateAndProcess(file);
+      }
+    };
+
+    window.addEventListener("paste", handleGlobalPaste);
+    return () => window.removeEventListener("paste", handleGlobalPaste);
+  }, []);
+
+  const handleManualPaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text && text.trim().length > 0) {
+        const file = new File([text], "pasted_content.html", { type: "text/html" });
+        validateAndProcess(file);
+      } else {
+        setErrorMsg("ক্লিপবোর্ডে কোনো টেক্সট বা এইচটিএমএল পাওয়া যায়নি।");
+      }
+    } catch (err) {
+      setErrorMsg("ক্লিপবোর্ড থেকে পেস্ট করতে ব্যর্থ হয়েছে। দয়া করে ব্রাউজার পারমিশন চেক করুন বা Ctrl+V ব্যবহার করুন।");
+    }
+  };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -218,11 +250,24 @@ export default function HTMLUploader({ onFileSelect, isLoading, progress }: HTML
             </div>
             <div>
               <p className="text-sm md:text-md font-semibold text-slate-800">
-                ক্লিক করে ফাইল সিলেক্ট করুন অথবা এখানে ড্র্যাগ করুন
+                ক্লিক করে ফাইল সিলেক্ট করুন, ড্র্যাগ করুন অথবা পেস্ট (Ctrl+V) করুন
               </p>
               <p className="text-xs text-slate-500 mt-1.5">
                 শুধুমাত্র .html বা .htm কন্টেন্ট সাপোর্ট করে
               </p>
+            </div>
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleManualPaste();
+                }}
+                className="flex items-center justify-center space-x-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors"
+              >
+                <ClipboardPaste className="h-3.5 w-3.5 text-blue-600" />
+                <span>ক্লিপবোর্ড থেকে পেস্ট করুন</span>
+              </button>
             </div>
           </div>
         )}
