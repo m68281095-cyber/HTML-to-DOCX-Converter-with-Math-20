@@ -133,6 +133,7 @@ export function parseUploadedHTML(
       // We allow standard MathML tags and SVG for Math layout representation
       const sanitized = DOMPurify.sanitize(repairedResult, {
         ADD_TAGS: [
+          "font",
           "math",
           "mrow",
           "mfrac",
@@ -158,7 +159,7 @@ export function parseUploadedHTML(
           "annotation-xml",
           "mstyle"
         ],
-        ADD_ATTR: ["display", "open", "close", "class", "style", "id"],
+        ADD_ATTR: ["display", "open", "close", "class", "style", "id", "color", "size"],
       });
       onProgress(60);
 

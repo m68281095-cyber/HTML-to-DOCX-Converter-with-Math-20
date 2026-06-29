@@ -17,7 +17,11 @@ import {
 } from "docx";
 import JSZip from "jszip";
 import { ConversionConfig, ConversionLog } from "../types";
-import { convertMathMLToDocxMath, getMathMLString, convertASTToLocalOmmlString } from "./mathConverter";
+import {
+  convertMathMLToDocxMath,
+  getMathMLString,
+  convertASTToLocalOmmlString,
+} from "./mathConverter";
 import { repairMalformedSpanTags } from "./fileParser";
 
 // Module-level dynamic active font declarations updated per compilation request
@@ -194,7 +198,7 @@ function isColorGrey(hex: string): boolean {
 
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
-  return (max - min) < 45;
+  return max - min < 45;
 }
 
 function parseTailwindClassColor(cls: string): string | null {
@@ -290,7 +294,11 @@ function containsComplexMath(mathml: string): boolean {
  * For simple equations, returns a native DocxMath node.
  * For complex equations, returns a TextRun with a raw XML placeholder.
  */
-function renderInlineMathToRun(mathml: string, fallbackFormula: string, parentStyle: any): any {
+function renderInlineMathToRun(
+  mathml: string,
+  fallbackFormula: string,
+  parentStyle: any,
+): any {
   if (!containsComplexMath(mathml)) {
     try {
       const mathObj = convertMathMLToDocxMath(mathml);
@@ -298,7 +306,10 @@ function renderInlineMathToRun(mathml: string, fallbackFormula: string, parentSt
         return mathObj;
       }
     } catch (e) {
-      console.warn("convertMathMLToDocxMath failed, falling back to placeholder:", e);
+      console.warn(
+        "convertMathMLToDocxMath failed, falling back to placeholder:",
+        e,
+      );
     }
   }
 
@@ -443,6 +454,13 @@ function parseElementStyles(el: HTMLElement): ElementStyle {
         }
       }
     }
+  }
+
+  // Parse color attribute directly (e.g. <font color="red">)
+  const colorAttr = el.getAttribute("color");
+  if (colorAttr) {
+    const hex = parseColorToHex(colorAttr);
+    if (hex) styles.color = hex;
   }
 
   // Examine Tailwind CSS utility classes
@@ -608,13 +626,15 @@ function parseElementStyles(el: HTMLElement): ElementStyle {
 /**
  * Splits text into emoji chunks, math chunks, and normal text chunks
  */
-function splitTextSegments(text: string): { text: string; type: 'text' | 'emoji' | 'math' }[] {
-  // Math regex: matches $...$ but ensures no space immediately after the opening $ 
+function splitTextSegments(
+  text: string,
+): { text: string; type: "text" | "emoji" | "math" }[] {
+  // Math regex: matches $...$ but ensures no space immediately after the opening $
   // and no space immediately before the closing $. This helps avoid matching "$5 and $10"
   const regex = activeSkipEquations
     ? /([\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF]|[\u2300-\u23FF]|[\u2B50-\u2B55]|[\u2934-\u2935])/g
     : /([\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF]|[\u2300-\u23FF]|[\u2B50-\u2B55]|[\u2934-\u2935])|(\$(?!\s)(?:[^$\n]*?[^\s$])?\$)/g;
-  const chunks: { text: string; type: 'text' | 'emoji' | 'math' }[] = [];
+  const chunks: { text: string; type: "text" | "emoji" | "math" }[] = [];
 
   let lastIndex = 0;
   let match;
@@ -622,23 +642,23 @@ function splitTextSegments(text: string): { text: string; type: 'text' | 'emoji'
   while ((match = regex.exec(text)) !== null) {
     const before = text.substring(lastIndex, match.index);
     if (before) {
-      chunks.push({ text: before, type: 'text' });
+      chunks.push({ text: before, type: "text" });
     }
     if (match[1]) {
-      chunks.push({ text: match[1], type: 'emoji' });
+      chunks.push({ text: match[1], type: "emoji" });
     } else if (match[2]) {
-      chunks.push({ text: match[2], type: 'math' });
+      chunks.push({ text: match[2], type: "math" });
     }
     lastIndex = regex.lastIndex;
   }
 
   const rest = text.substring(lastIndex);
   if (rest) {
-    chunks.push({ text: rest, type: 'text' });
+    chunks.push({ text: rest, type: "text" });
   }
 
   if (chunks.length === 0 && text) {
-    chunks.push({ text, type: 'text' });
+    chunks.push({ text, type: "text" });
   }
 
   return chunks;
@@ -649,47 +669,54 @@ function splitTextSegments(text: string): { text: string; type: 'text' | 'emoji'
  * This guarantees proper font and size mappings and keeps auxiliary symbols, punctuation,
  * spaces, and digits matching the wrapping script block.
  */
-function splitScripts(text: string): { text: string; script: 'bangla' | 'arabic' | 'english' }[] {
-  const isArabicChar = (c: string) => /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(c);
-  const isBanglaChar = (c: string) => /[\u0980-\u09FF\u0964\u0965\u200C\u200D]/.test(c);
-  const isNeutralChar = (c: string) => /[\s0-9.,;:\-—–_+=/\\|?!@#$%^&*()\[\]{}<>'"`~।‘’“”]/.test(c);
+function splitScripts(
+  text: string,
+): { text: string; script: "bangla" | "arabic" | "english" }[] {
+  const isArabicChar = (c: string) =>
+    /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(
+      c,
+    );
+  const isBanglaChar = (c: string) =>
+    /[\u0980-\u09FF\u0964\u0965\u200C\u200D]/.test(c);
+  const isNeutralChar = (c: string) =>
+    /[\s0-9.,;:\-—–_+=/\\|?!@#$%^&*()\[\]{}<>'"`~।‘’“”]/.test(c);
 
   if (!text) return [];
 
   const chars = Array.from(text);
-  const runs: { text: string; script: 'bangla' | 'arabic' | 'english' }[] = [];
-  
-  let currentScript: 'bangla' | 'arabic' | 'english' | null = null;
+  const runs: { text: string; script: "bangla" | "arabic" | "english" }[] = [];
+
+  let currentScript: "bangla" | "arabic" | "english" | null = null;
   let currentBuffer: string[] = [];
 
   for (let i = 0; i < chars.length; i++) {
     const c = chars[i];
-    let charScript: 'bangla' | 'arabic' | 'english' | 'neutral';
+    let charScript: "bangla" | "arabic" | "english" | "neutral";
 
     if (isBanglaChar(c)) {
-      charScript = 'bangla';
+      charScript = "bangla";
     } else if (isArabicChar(c)) {
-      charScript = 'arabic';
+      charScript = "arabic";
     } else if (isNeutralChar(c)) {
-      charScript = 'neutral';
+      charScript = "neutral";
     } else {
-      charScript = 'english';
+      charScript = "english";
     }
 
     if (currentScript === null) {
-      if (charScript === 'neutral') {
-        let nextStrong: 'bangla' | 'arabic' | 'english' = 'english';
+      if (charScript === "neutral") {
+        let nextStrong: "bangla" | "arabic" | "english" = "english";
         for (let j = i + 1; j < chars.length; j++) {
           if (isBanglaChar(chars[j])) {
-            nextStrong = 'bangla';
+            nextStrong = "bangla";
             break;
           }
           if (isArabicChar(chars[j])) {
-            nextStrong = 'arabic';
+            nextStrong = "arabic";
             break;
           }
           if (!isNeutralChar(chars[j])) {
-            nextStrong = 'english';
+            nextStrong = "english";
             break;
           }
         }
@@ -699,9 +726,9 @@ function splitScripts(text: string): { text: string; script: 'bangla' | 'arabic'
       }
     }
 
-    if (charScript !== 'neutral' && charScript !== currentScript) {
+    if (charScript !== "neutral" && charScript !== currentScript) {
       if (currentBuffer.length > 0) {
-        runs.push({ text: currentBuffer.join(''), script: currentScript });
+        runs.push({ text: currentBuffer.join(""), script: currentScript });
         currentBuffer = [];
       }
       currentScript = charScript;
@@ -711,12 +738,18 @@ function splitScripts(text: string): { text: string; script: 'bangla' | 'arabic'
   }
 
   if (currentBuffer.length > 0 && currentScript !== null) {
-    runs.push({ text: currentBuffer.join(''), script: currentScript });
+    runs.push({ text: currentBuffer.join(""), script: currentScript });
   }
 
-  const mergedRuns: { text: string; script: 'bangla' | 'arabic' | 'english' }[] = [];
+  const mergedRuns: {
+    text: string;
+    script: "bangla" | "arabic" | "english";
+  }[] = [];
   for (const r of runs) {
-    if (mergedRuns.length > 0 && mergedRuns[mergedRuns.length - 1].script === r.script) {
+    if (
+      mergedRuns.length > 0 &&
+      mergedRuns[mergedRuns.length - 1].script === r.script
+    ) {
       mergedRuns[mergedRuns.length - 1].text += r.text;
     } else {
       mergedRuns.push(r);
@@ -745,19 +778,23 @@ function walkParagraphNodes(
       let parentEl = node.parentElement;
       while (parentEl) {
         const pTag = parentEl.tagName.toLowerCase();
-        if (pTag === "pre" || (pTag === "code" && parentEl.parentElement?.tagName.toLowerCase() === "pre")) {
+        if (
+          pTag === "pre" ||
+          (pTag === "code" &&
+            parentEl.parentElement?.tagName.toLowerCase() === "pre")
+        ) {
           preserveLines = true;
           break;
         }
         const classes = parentEl.className || "";
         if (
-          classes.includes("whitespace-pre") || 
-          classes.includes("whitespace-pre-wrap") || 
-          classes.includes("whitespace-pre-line") || 
-          classes.includes("whitespace-break-spaces") || 
-          parentEl.style.whiteSpace === "pre" || 
-          parentEl.style.whiteSpace === "pre-wrap" || 
-          parentEl.style.whiteSpace === "pre-line" || 
+          classes.includes("whitespace-pre") ||
+          classes.includes("whitespace-pre-wrap") ||
+          classes.includes("whitespace-pre-line") ||
+          classes.includes("whitespace-break-spaces") ||
+          parentEl.style.whiteSpace === "pre" ||
+          parentEl.style.whiteSpace === "pre-wrap" ||
+          parentEl.style.whiteSpace === "pre-line" ||
           parentEl.style.whiteSpace === "break-spaces"
         ) {
           preserveLines = true;
@@ -789,7 +826,9 @@ function walkParagraphNodes(
                 const formula = chunk.text.slice(1, -1);
                 try {
                   const mathml = getMathMLString(formula, false);
-                  runsArray.push(renderInlineMathToRun(mathml, formula, parentStyle));
+                  runsArray.push(
+                    renderInlineMathToRun(mathml, formula, parentStyle),
+                  );
                 } catch (err) {
                   runsArray.push(
                     new TextRun({
@@ -810,8 +849,16 @@ function walkParagraphNodes(
                 for (const sub of subChunks) {
                   const isAr = sub.script === "arabic";
                   const isBn = sub.script === "bangla";
-                  const targetFont = isAr ? activeArabicFont : (isBn ? activeBanglaFont : activeEnglishFont);
-                  const targetSize = isAr ? activeArabicFontSize : (isBn && activeBanglaFontSize !== null ? activeBanglaFontSize : parentStyle.size);
+                  const targetFont = isAr
+                    ? activeArabicFont
+                    : isBn
+                      ? activeBanglaFont
+                      : activeEnglishFont;
+                  const targetSize = isAr
+                    ? activeArabicFontSize
+                    : isBn && activeBanglaFontSize !== null
+                      ? activeBanglaFontSize
+                      : parentStyle.size;
                   runsArray.push(
                     new TextRun({
                       text: sub.text,
@@ -841,11 +888,11 @@ function walkParagraphNodes(
       }
 
       // Normalize whitespace like a browser (newlines, tabs, multiple spaces become a single space)
-      txt = txt.replace(/[\r\n\t]+/g, ' ').replace(/ {2,}/g, ' ');
+      txt = txt.replace(/[\r\n\t]+/g, " ").replace(/ {2,}/g, " ");
       if (txt === "") return;
       const chunks = splitTextSegments(txt);
       for (const chunk of chunks) {
-        if (chunk.type === 'emoji') {
+        if (chunk.type === "emoji") {
           runsArray.push(
             new TextRun({
               text: chunk.text,
@@ -857,7 +904,7 @@ function walkParagraphNodes(
               font: "Segoe UI Emoji",
             }),
           );
-        } else if (chunk.type === 'math') {
+        } else if (chunk.type === "math") {
           const formula = chunk.text.slice(1, -1);
           try {
             const mathml = getMathMLString(formula, false);
@@ -883,8 +930,16 @@ function walkParagraphNodes(
           for (const sub of subChunks) {
             const isAr = sub.script === "arabic";
             const isBn = sub.script === "bangla";
-            const targetFont = isAr ? activeArabicFont : (isBn ? activeBanglaFont : activeEnglishFont);
-            const targetSize = isAr ? activeArabicFontSize : (isBn && activeBanglaFontSize !== null ? activeBanglaFontSize : parentStyle.size);
+            const targetFont = isAr
+              ? activeArabicFont
+              : isBn
+                ? activeBanglaFont
+                : activeEnglishFont;
+            const targetSize = isAr
+              ? activeArabicFontSize
+              : isBn && activeBanglaFontSize !== null
+                ? activeBanglaFontSize
+                : parentStyle.size;
             runsArray.push(
               new TextRun({
                 text: sub.text,
@@ -927,7 +982,8 @@ function walkParagraphNodes(
     // Direct standalone MathML tag
     if (tag === "math") {
       try {
-        const rawEq = extractTeXAnnotation(el.outerHTML) || el.textContent || "";
+        const rawEq =
+          extractTeXAnnotation(el.outerHTML) || el.textContent || "";
         runsArray.push(renderInlineMathToRun(el.outerHTML, rawEq, parentStyle));
       } catch (err) {
         const rawEq =
@@ -954,14 +1010,16 @@ function walkParagraphNodes(
     // Handled mathml or katex wrapper tags
     if (
       !activeSkipEquations &&
-      (el.classList.contains("katex-mathml") ||
-       el.classList.contains("katex"))
+      (el.classList.contains("katex-mathml") || el.classList.contains("katex"))
     ) {
       const mathEl = el.querySelector("math");
       if (mathEl) {
         try {
-          const rawEq = extractTeXAnnotation(mathEl.outerHTML) || el.textContent || "";
-          runsArray.push(renderInlineMathToRun(mathEl.outerHTML, rawEq, parentStyle));
+          const rawEq =
+            extractTeXAnnotation(mathEl.outerHTML) || el.textContent || "";
+          runsArray.push(
+            renderInlineMathToRun(mathEl.outerHTML, rawEq, parentStyle),
+          );
         } catch (err) {
           const rawEq =
             extractTeXAnnotation(mathEl.outerHTML) || el.textContent || "";
@@ -1053,10 +1111,14 @@ function walkParagraphNodes(
     cellStyle.subScript = isSubScript;
     cellStyle.superScript = isSuperScript;
     // Inherit text color and size from parent if not local
-    if (cellStyle.color === "000000" && parentStyle.color !== "000000") {
+    if (
+      cellStyle.color === "000000" &&
+      parentStyle.color &&
+      parentStyle.color !== "000000"
+    ) {
       cellStyle.color = parentStyle.color;
     }
-    if (cellStyle.size === 24 && parentStyle.size !== 24) {
+    if (cellStyle.size === 26 && parentStyle.size && parentStyle.size !== 26) {
       cellStyle.size = parentStyle.size;
     }
 
@@ -1146,21 +1208,21 @@ export async function convertHTMLToDocxBlob(
   async function parseBlocks(
     nodes: Node[],
     parentStyle: ElementStyle,
-    elementsArray: any[]
+    elementsArray: any[],
   ): Promise<void> {
     let inlineBuffer: Node[] = [];
 
     const flushInlineBuffer = () => {
       if (inlineBuffer.length === 0) return;
-      
+
       // Prevent creating empty paragraphs for pure HTML formatting whitespace
-      const hasContent = inlineBuffer.some(n => {
+      const hasContent = inlineBuffer.some((n) => {
         if (n.nodeType === Node.TEXT_NODE) {
           return (n.textContent || "").trim() !== "";
         }
         return true;
       });
-      
+
       if (!hasContent) {
         inlineBuffer = [];
         return;
@@ -1169,10 +1231,25 @@ export async function convertHTMLToDocxBlob(
       const textRuns: any[] = [];
       for (const bufNode of inlineBuffer) {
         if (bufNode.nodeType === Node.TEXT_NODE) {
-          walkParagraphNodes(bufNode, parentStyle, parentStyle.bold, parentStyle.italic, textRuns);
+          walkParagraphNodes(
+            bufNode,
+            parentStyle,
+            parentStyle.bold,
+            parentStyle.italic,
+            textRuns,
+          );
         } else {
-          const elStyle = { ...parentStyle, ...parseElementStyles(bufNode as HTMLElement) };
-          walkParagraphNodes(bufNode, elStyle, elStyle.bold, elStyle.italic, textRuns);
+          const elStyle = {
+            ...parentStyle,
+            ...parseElementStyles(bufNode as HTMLElement),
+          };
+          walkParagraphNodes(
+            bufNode,
+            elStyle,
+            elStyle.bold,
+            elStyle.italic,
+            textRuns,
+          );
         }
       }
       if (textRuns.length > 0) {
@@ -1181,7 +1258,7 @@ export async function convertHTMLToDocxBlob(
             children: textRuns,
             alignment: parentStyle.alignment,
             spacing: { before: 60, after: 120 },
-          })
+          }),
         );
       }
       inlineBuffer = [];
@@ -1213,12 +1290,34 @@ export async function convertHTMLToDocxBlob(
         continue;
       }
 
-      const isMathBlock = !activeSkipEquations && (el.classList.contains("katex-display") || (tag === "math" && el.getAttribute("display") === "block"));
+      const isMathBlock =
+        !activeSkipEquations &&
+        (el.classList.contains("katex-display") ||
+          (tag === "math" && el.getAttribute("display") === "block"));
       const blockTags = [
-        "p", "h1", "h2", "h3", "h4", "h5", "h6", "div", "pre",
-        "blockquote", "table", "ul", "ol", "li", "figure",
-        "section", "article", "header", "footer", "main", "body", "center",
-        "hr"
+        "p",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "div",
+        "pre",
+        "blockquote",
+        "table",
+        "ul",
+        "ol",
+        "li",
+        "figure",
+        "section",
+        "article",
+        "header",
+        "footer",
+        "main",
+        "body",
+        "center",
+        "hr",
       ];
 
       if (!blockTags.includes(tag) && !isMathBlock) {
@@ -1245,8 +1344,8 @@ export async function convertHTMLToDocxBlob(
                 new Paragraph({
                   children: [docxMath],
                   alignment: AlignmentType.CENTER,
-                  spacing: { before: 240, after: 240 }
-                })
+                  spacing: { before: 240, after: 240 },
+                }),
               );
               continue;
             }
@@ -1324,23 +1423,45 @@ export async function convertHTMLToDocxBlob(
         }
 
         // Container element check: recurse in children if block structures exist inside
-        const isContainer = ["div", "section", "article", "header", "footer", "main", "body", "center"].includes(tag);
+        const isContainer = [
+          "div",
+          "section",
+          "article",
+          "header",
+          "footer",
+          "main",
+          "body",
+          "center",
+        ].includes(tag);
         if (isContainer) {
-          const hasBlocks = el.querySelector(
-            "p, h1, h2, h3, h4, h5, h6, table, ul, ol, blockquote, div, section, article, math[display='block'], span.katex-display"
-          ) !== null;
+          const hasBlocks =
+            el.querySelector(
+              "p, h1, h2, h3, h4, h5, h6, table, ul, ol, blockquote, div, section, article, math[display='block'], span.katex-display",
+            ) !== null;
 
           if (hasBlocks) {
             const elStyle = parseElementStyles(el);
             const currentStyle = { ...parentStyle, ...elStyle };
-            if (elStyle.color === "000000" && parentStyle.color !== "000000") {
+            if (
+              elStyle.color === "000000" &&
+              parentStyle.color &&
+              parentStyle.color !== "000000"
+            ) {
               currentStyle.color = parentStyle.color;
             }
-            if (elStyle.size === 24 && parentStyle.size !== 24) {
+            if (
+              elStyle.size === 26 &&
+              parentStyle.size &&
+              parentStyle.size !== 26
+            ) {
               currentStyle.size = parentStyle.size;
             }
 
-            await parseBlocks(Array.from(el.childNodes), currentStyle, elementsArray);
+            await parseBlocks(
+              Array.from(el.childNodes),
+              currentStyle,
+              elementsArray,
+            );
             continue;
           }
         }
@@ -1349,7 +1470,25 @@ export async function convertHTMLToDocxBlob(
         if (
           ["p", "h1", "h2", "h3", "h4", "h5", "h6", "div", "pre"].includes(tag)
         ) {
-          const styles = parseElementStyles(el);
+          const rawStyles = parseElementStyles(el);
+          const styles = { ...parentStyle, ...rawStyles };
+          if (
+            rawStyles.color === "000000" &&
+            parentStyle.color &&
+            parentStyle.color !== "000000"
+          ) {
+            styles.color = parentStyle.color;
+          }
+          if (rawStyles.size === 26 && parentStyle.size !== 26) {
+            styles.size = parentStyle.size;
+          }
+          if (
+            rawStyles.alignment === AlignmentType.START &&
+            parentStyle.alignment !== AlignmentType.START
+          ) {
+            styles.alignment = parentStyle.alignment;
+          }
+
           const paragraphChildrenElements: any[] = [];
           walkParagraphNodes(
             el,
@@ -1363,10 +1502,14 @@ export async function convertHTMLToDocxBlob(
             new Paragraph({
               children: paragraphChildrenElements,
               alignment: styles.alignment,
-              indent: styles.indentLeft ? { left: styles.indentLeft } : undefined,
+              indent: styles.indentLeft
+                ? { left: styles.indentLeft }
+                : undefined,
               spacing: {
                 before:
-                  styles.spacingBefore !== undefined ? styles.spacingBefore : 80,
+                  styles.spacingBefore !== undefined
+                    ? styles.spacingBefore
+                    : 80,
                 after:
                   styles.spacingAfter !== undefined ? styles.spacingAfter : 160,
               },
@@ -1391,7 +1534,7 @@ export async function convertHTMLToDocxBlob(
                 before: 120,
                 after: 120,
               },
-            })
+            }),
           );
           continue;
         }
@@ -1434,7 +1577,9 @@ export async function convertHTMLToDocxBlob(
 
         // High-resolution lists utilizing native Word bullet/number properties
         if (tag === "ul" || tag === "ol") {
-          const listItems = Array.from(el.children).filter(c => c.tagName.toLowerCase() === "li");
+          const listItems = Array.from(el.children).filter(
+            (c) => c.tagName.toLowerCase() === "li",
+          );
           const builtInStyle = tag === "ul" ? "ListBullet" : "ListNumber";
 
           listItems.forEach((li) => {
@@ -1495,7 +1640,11 @@ export async function convertHTMLToDocxBlob(
               const cellStyle = parseElementStyles(cell);
 
               const cellChildren: any[] = [];
-              await parseBlocks(Array.from(cell.childNodes), cellStyle, cellChildren);
+              await parseBlocks(
+                Array.from(cell.childNodes),
+                cellStyle,
+                cellChildren,
+              );
 
               if (cellChildren.length === 0) {
                 cellChildren.push(new Paragraph(""));
@@ -1534,13 +1683,21 @@ export async function convertHTMLToDocxBlob(
                     right: paddingTwips.right,
                   },
                   borders: {
-                    top: { style: BorderStyle.SINGLE, size: 4, color: "CBD5E1" },
+                    top: {
+                      style: BorderStyle.SINGLE,
+                      size: 4,
+                      color: "CBD5E1",
+                    },
                     bottom: {
                       style: BorderStyle.SINGLE,
                       size: 4,
                       color: "CBD5E1",
                     },
-                    left: { style: BorderStyle.SINGLE, size: 4, color: "CBD5E1" },
+                    left: {
+                      style: BorderStyle.SINGLE,
+                      size: 4,
+                      color: "CBD5E1",
+                    },
                     right: {
                       style: BorderStyle.SINGLE,
                       size: 4,
@@ -1556,15 +1713,26 @@ export async function convertHTMLToDocxBlob(
               cells.push(
                 new TableCell({
                   children: [new Paragraph("")],
-                  width: { size: `${columnWidthPCT}%`, type: WidthType.PERCENTAGE },
+                  width: {
+                    size: `${columnWidthPCT}%`,
+                    type: WidthType.PERCENTAGE,
+                  },
                   borders: {
-                    top: { style: BorderStyle.SINGLE, size: 4, color: "CBD5E1" },
+                    top: {
+                      style: BorderStyle.SINGLE,
+                      size: 4,
+                      color: "CBD5E1",
+                    },
                     bottom: {
                       style: BorderStyle.SINGLE,
                       size: 4,
                       color: "CBD5E1",
                     },
-                    left: { style: BorderStyle.SINGLE, size: 4, color: "CBD5E1" },
+                    left: {
+                      style: BorderStyle.SINGLE,
+                      size: 4,
+                      color: "CBD5E1",
+                    },
                     right: {
                       style: BorderStyle.SINGLE,
                       size: 4,
@@ -1597,7 +1765,13 @@ export async function convertHTMLToDocxBlob(
         const textVal = el.textContent?.trim();
         if (textVal) {
           const textRuns: any[] = [];
-          walkParagraphNodes(el, parseElementStyles(el), false, false, textRuns);
+          walkParagraphNodes(
+            el,
+            parseElementStyles(el),
+            false,
+            false,
+            textRuns,
+          );
           elementsArray.push(new Paragraph({ children: textRuns }));
         }
       } catch (err: any) {
@@ -1608,7 +1782,7 @@ export async function convertHTMLToDocxBlob(
         );
       }
     }
-    
+
     // Flush any remaining active inline elements at end of block
     flushInlineBuffer();
   }
@@ -1621,7 +1795,11 @@ export async function convertHTMLToDocxBlob(
     alignment: AlignmentType.START,
   };
 
-  await parseBlocks(Array.from(body.childNodes), defaultBaseStyle, docxElements);
+  await parseBlocks(
+    Array.from(body.childNodes),
+    defaultBaseStyle,
+    docxElements,
+  );
 
   // Generate the document
   const wordDoc = new Document({
@@ -1664,7 +1842,8 @@ export async function convertHTMLToDocxBlob(
     const zip = await JSZip.loadAsync(blob);
     const docXml = await zip.file("word/document.xml")?.async("string");
     if (docXml) {
-      const regex = /<w:p(?:\s+[^>]*)*>(?:(?!<\/w:p>).)*?__MP_START__([a-zA-Z0-9]+)__(.*?)__MP_END__\1__(?:(?!<w:p[>\s]).)*?<\/w:p>/gs;
+      const regex =
+        /<w:p(?:\s+[^>]*)*>(?:(?!<\/w:p>).)*?__MP_START__([a-zA-Z0-9]+)__(.*?)__MP_END__\1__(?:(?!<w:p[>\s]).)*?<\/w:p>/gs;
 
       const decodeXml = (encoded: string): string => {
         return encoded
@@ -1678,21 +1857,30 @@ export async function convertHTMLToDocxBlob(
       let replacedXml = docXml;
 
       // 1. Process block math placeholders (replaces the entire paragraph)
-      const blockRegex = /<w:p(?:\s+[^>]*)*>(?:(?!<\/w:p>).)*?__MP_START__([a-zA-Z0-9]+)__(.*?)__MP_END__\1__(?:(?!<w:p[>\s]).)*?<\/w:p>/gs;
-      replacedXml = replacedXml.replace(blockRegex, (match, id, encodedPayload) => {
-        return decodeXml(encodedPayload);
-      });
+      const blockRegex =
+        /<w:p(?:\s+[^>]*)*>(?:(?!<\/w:p>).)*?__MP_START__([a-zA-Z0-9]+)__(.*?)__MP_END__\1__(?:(?!<w:p[>\s]).)*?<\/w:p>/gs;
+      replacedXml = replacedXml.replace(
+        blockRegex,
+        (match, id, encodedPayload) => {
+          return decodeXml(encodedPayload);
+        },
+      );
 
       // 2. Process inline math placeholders (replaces just the run containing the marker)
-      const inlineRegex = /<w:r(?:\s+[^>]*)*>(?:(?!<\/w:r>).)*?__M_INLINE_START__([a-zA-Z0-9]+)__(.*?)__M_INLINE_END__\1__(?:(?!<w:r[>\s]).)*?<\/w:r>/gs;
-      replacedXml = replacedXml.replace(inlineRegex, (match, id, encodedPayload) => {
-        return decodeXml(encodedPayload);
-      });
+      const inlineRegex =
+        /<w:r(?:\s+[^>]*)*>(?:(?!<\/w:r>).)*?__M_INLINE_START__([a-zA-Z0-9]+)__(.*?)__M_INLINE_END__\1__(?:(?!<w:r[>\s]).)*?<\/w:r>/gs;
+      replacedXml = replacedXml.replace(
+        inlineRegex,
+        (match, id, encodedPayload) => {
+          return decodeXml(encodedPayload);
+        },
+      );
 
       zip.file("word/document.xml", replacedXml);
       finalBlob = await zip.generateAsync({
         type: "blob",
-        mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        mimeType:
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       });
     }
   } catch (err) {
