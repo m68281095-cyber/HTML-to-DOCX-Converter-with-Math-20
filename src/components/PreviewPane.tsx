@@ -362,6 +362,64 @@ export default function PreviewPane({
         </div>
       </div>
 
+      {/* Page Layout Configuration Panel */}
+      <div className={`flex flex-wrap items-center gap-4 border-b px-6 py-2.5 text-xs select-none ${config.theme === "dark" ? "bg-slate-800 border-slate-700 text-gray-200" : "bg-white border-gray-300 text-gray-800"}`}>
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-indigo-600">পেজ লেআউট (Page Layout):</span>
+        </div>
+
+        {/* Margin preset choice */}
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-gray-700 dark:text-gray-300">মার্জিন (Margins):</span>
+          <select
+            value={config.margins.top === 0.5 ? "narrow" : "normal"}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === "narrow") {
+                onChangeConfig({
+                  margins: { top: 0.5, bottom: 0.5, left: 0.5, right: 0.5 }
+                });
+              } else {
+                onChangeConfig({
+                  margins: { top: 1, bottom: 1, left: 1, right: 1 }
+                });
+              }
+            }}
+            className="px-2 py-1 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded text-xs text-gray-800 dark:text-gray-100 cursor-pointer focus:outline-none"
+          >
+            <option value="narrow">সংকীর্ণ - Narrow (১.২৭ সেমি / 1.27 cm)</option>
+            <option value="normal">স্বাভাবিক - Normal (২.৫৪ সেমি / 2.54 cm)</option>
+          </select>
+        </div>
+
+        {/* Orientation choice */}
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-gray-700 dark:text-gray-300">ওরিয়েন্টেশন (Orientation):</span>
+          <select
+            value={config.orientation}
+            onChange={(e) => onChangeConfig({ orientation: e.target.value as any })}
+            className="px-2 py-1 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded text-xs text-gray-800 dark:text-gray-100 cursor-pointer focus:outline-none"
+          >
+            <option value="portrait">লম্বালম্বি (Portrait)</option>
+            <option value="landscape">আড়াআড়ি (Landscape)</option>
+          </select>
+        </div>
+
+        {/* Compact Mode (No spacing, no italics) */}
+        <div className="flex items-center gap-2 border-l border-gray-300 dark:border-slate-700 pl-4 h-5">
+          <label className="flex items-center gap-2 font-bold text-gray-800 dark:text-gray-200 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              id="checkbox-compact-mode"
+              checked={!!config.compactNoItalics}
+              onChange={(e) => onChangeConfig({ compactNoItalics: e.target.checked })}
+              className="w-4 h-4 text-indigo-600 rounded border-gray-300 dark:border-slate-600 focus:ring-indigo-500 cursor-pointer"
+            />
+            <span className="text-xs text-gray-700 dark:text-gray-300">ফাঁকা ও ইটালিক ছাড়া (Compact & Straight)</span>
+          </label>
+        </div>
+      </div>
+
       {/* Font Configuration Panel */}
       <div className={`flex flex-wrap items-center gap-4 border-b px-6 py-3 text-xs select-none ${config.theme === "dark" ? "bg-slate-850 border-slate-700 text-gray-200" : "bg-gray-50 border-gray-300 text-gray-800"}`}>
         <div className="flex items-center gap-2">
@@ -571,7 +629,7 @@ export default function PreviewPane({
             {/* Direct insert sanitized HTML */}
             <div
               ref={leftContentRef}
-              className={`prose prose-sm max-w-none text-[#1A1A1A] ${config.forceBlackText ? "force-black-text" : ""}`}
+              className={`prose prose-sm max-w-none text-[#1A1A1A] ${config.forceBlackText ? "force-black-text" : ""} ${config.compactNoItalics ? "compact-no-italics" : ""}`}
               dangerouslySetInnerHTML={{ __html: processedContent }}
               style={{
                 fontFamily: `"${config.englishFont}", "${config.banglaFont}", 'Inter', sans-serif`,
@@ -620,7 +678,7 @@ export default function PreviewPane({
               {/* Document content */}
               <div
                 ref={rightContentRef}
-                className={`prose prose-sm max-w-none text-slate-900 text-justify ${config.forceBlackText ? "force-black-text" : ""}`}
+                className={`prose prose-sm max-w-none text-slate-900 text-justify ${config.forceBlackText ? "force-black-text" : ""} ${config.compactNoItalics ? "compact-no-italics" : ""}`}
                 dangerouslySetInnerHTML={{ __html: processedContent }}
                 style={{
                   fontFamily: `"${config.englishFont}", "${config.banglaFont}", 'Inter', sans-serif`,

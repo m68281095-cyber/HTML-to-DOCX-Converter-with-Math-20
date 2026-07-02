@@ -2,12 +2,12 @@ import React, { useState, useRef, useEffect } from "react";
 import { Upload, FileCode, CheckCircle, AlertCircle, HelpCircle, ClipboardPaste } from "lucide-react";
 
 interface HTMLUploaderProps {
-  onFileSelect: (file: File) => void;
+  onFilesSelect: (files: File[]) => void;
   isLoading: boolean;
   progress: number;
 }
 
-export default function HTMLUploader({ onFileSelect, isLoading, progress }: HTMLUploaderProps) {
+export default function HTMLUploader({ onFilesSelect, isLoading, progress }: HTMLUploaderProps) {
   const [isDragActive, setIsDragActive] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -22,7 +22,7 @@ export default function HTMLUploader({ onFileSelect, isLoading, progress }: HTML
       const pastedText = e.clipboardData?.getData("text/html") || e.clipboardData?.getData("text/plain");
       if (pastedText && pastedText.trim().length > 0) {
         const file = new File([pastedText], "pasted_content.html", { type: "text/html" });
-        validateAndProcess(file);
+        validateAndProcess([file]);
       }
     };
 
@@ -35,7 +35,7 @@ export default function HTMLUploader({ onFileSelect, isLoading, progress }: HTML
       const text = await navigator.clipboard.readText();
       if (text && text.trim().length > 0) {
         const file = new File([text], "pasted_content.html", { type: "text/html" });
-        validateAndProcess(file);
+        validateAndProcess([file]);
       } else {
         setErrorMsg("ক্লিপবোর্ডে কোনো টেক্সট বা এইচটিএমএল পাওয়া যায়নি।");
       }
@@ -60,26 +60,40 @@ export default function HTMLUploader({ onFileSelect, isLoading, progress }: HTML
     setIsDragActive(false);
     setErrorMsg(null);
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      validateAndProcess(file);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      validateAndProcess(Array.from(e.dataTransfer.files));
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setErrorMsg(null);
-    if (e.target.files && e.target.files[0]) {
-      validateAndProcess(e.target.files[0]);
+    if (e.target.files && e.target.files.length > 0) {
+      validateAndProcess(Array.from(e.target.files));
     }
   };
 
-  const validateAndProcess = (file: File) => {
-    const isHtml = file.name.endsWith(".html") || file.name.endsWith(".htm") || file.type === "text/html";
-    if (!isHtml) {
-      setErrorMsg("অনুপযুক্ত ফাইল ফরম্যাট! দয়া করে একটি অর্গানাইজড .html বা .htm ফাইল আপলোড করুন।");
+  const validateAndProcess = (files: File[]) => {
+    const htmlFiles = files.filter(
+      (file) =>
+        file.name.endsWith(".html") ||
+        file.name.endsWith(".htm") ||
+        file.type === "text/html"
+    );
+
+    if (htmlFiles.length === 0) {
+      setErrorMsg(
+        "অনুপযুক্ত ফাইল ফরম্যাট! দয়া করে সঠিক .html বা .htm ফাইল আপলোড করুন।"
+      );
       return;
     }
-    onFileSelect(file);
+
+    if (htmlFiles.length < files.length) {
+      setErrorMsg(
+        "কিছু ফাইল এইচটিএমএল (HTML) না হওয়ায় এড়িয়ে যাওয়া হয়েছে। শুধুমাত্র সঠিক .html বা .htm ফাইলগুলো যুক্ত করা হবে।"
+      );
+    }
+
+    onFilesSelect(htmlFiles);
   };
 
   const triggerFileInput = () => {
@@ -220,6 +234,7 @@ export default function HTMLUploader({ onFileSelect, isLoading, progress }: HTML
           ref={fileInputRef}
           type="file"
           accept=".html,.htm"
+          multiple
           onChange={handleChange}
           className="hidden"
           disabled={isLoading}

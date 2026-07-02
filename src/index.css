@@ -91,4 +91,29 @@
   font-size: 13px !important;
 }
 
+/* Compact and upright style overrides for the live preview */
+.compact-no-italics,
+.compact-no-italics *,
+.compact-no-italics p,
+.compact-no-italics em,
+.compact-no-italics i,
+.compact-no-italics blockquote {
+  font-style: normal !important;
+}
+
+.compact-no-italics p,
+.compact-no-italics blockquote,
+.compact-no-italics pre,
+.compact-no-italics h1,
+.compact-no-italics h2,
+.compact-no-italics h3,
+.compact-no-italics h4,
+.compact-no-italics h5,
+.compact-no-italics h6 {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
 

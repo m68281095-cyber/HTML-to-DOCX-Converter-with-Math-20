@@ -32,6 +32,7 @@ let activeArabicFontSize = 48; // Default 24pt (48 half-points)
 let activeBanglaFontSize: number | null = null;
 let activeForceBlackText = false;
 let activeSkipEquations = false;
+let activeCompactNoItalics = false;
 
 /**
  * Maps typical Tailwind color classes to hex values.
@@ -320,7 +321,7 @@ function renderInlineMathToRun(
   } catch (err) {
     return new TextRun({
       text: fallbackFormula,
-      italics: true,
+      italics: !activeCompactNoItalics,
       color: parentStyle.color,
       font: {
         ascii: activeEnglishFont,
@@ -620,6 +621,12 @@ function parseElementStyles(el: HTMLElement): ElementStyle {
     styles.color = "000000";
   }
 
+  if (activeCompactNoItalics) {
+    styles.italic = false;
+    styles.spacingBefore = 0;
+    styles.spacingAfter = 0;
+  }
+
   return styles;
 }
 
@@ -833,7 +840,7 @@ function walkParagraphNodes(
                   runsArray.push(
                     new TextRun({
                       text: formula,
-                      italics: true,
+                      italics: !activeCompactNoItalics,
                       color: parentStyle.color,
                       font: {
                         ascii: activeEnglishFont,
@@ -913,7 +920,7 @@ function walkParagraphNodes(
             runsArray.push(
               new TextRun({
                 text: formula,
-                italics: true,
+                italics: !activeCompactNoItalics,
                 color: parentStyle.color,
                 font: {
                   ascii: activeEnglishFont,
@@ -992,7 +999,7 @@ function walkParagraphNodes(
           runsArray.push(
             new TextRun({
               text: rawEq,
-              italics: true,
+              italics: !activeCompactNoItalics,
               color: parentStyle.color,
               font: {
                 ascii: activeEnglishFont,
@@ -1027,7 +1034,7 @@ function walkParagraphNodes(
             runsArray.push(
               new TextRun({
                 text: rawEq,
-                italics: true,
+                italics: !activeCompactNoItalics,
                 color: parentStyle.color,
                 font: {
                   ascii: activeEnglishFont,
@@ -1046,7 +1053,7 @@ function walkParagraphNodes(
           runsArray.push(
             new TextRun({
               text: rawEq,
-              italics: true,
+              italics: !activeCompactNoItalics,
               color: parentStyle.color,
               font: {
                 ascii: activeEnglishFont,
@@ -1080,7 +1087,7 @@ function walkParagraphNodes(
         runsArray.push(
           new TextRun({
             text: formula,
-            italics: true,
+            italics: !activeCompactNoItalics,
             color: parentStyle.color,
             font: {
               ascii: activeEnglishFont,
@@ -1099,9 +1106,11 @@ function walkParagraphNodes(
       ["strong", "b", "th"].includes(tag) ||
       el.classList.contains("font-bold");
     let isItalic =
-      activeItalic ||
-      ["em", "i"].includes(tag) ||
-      el.classList.contains("italic");
+      !activeCompactNoItalics && (
+        activeItalic ||
+        ["em", "i"].includes(tag) ||
+        el.classList.contains("italic")
+      );
     let isSubScript =
       parentStyle.subScript || tag === "sub" || el.classList.contains("sub");
     let isSuperScript =
@@ -1156,6 +1165,7 @@ export async function convertHTMLToDocxBlob(
   }
   activeForceBlackText = !!config.forceBlackText;
   activeSkipEquations = !!config.skipEquations;
+  activeCompactNoItalics = !!config.compactNoItalics;
 
   const logs: ConversionLog[] = [];
   const addLog = (
@@ -1526,6 +1536,17 @@ export async function convertHTMLToDocxBlob(
           continue;
         }
 
+        // Page break element check
+        if (
+          tag === "div" &&
+          (el.classList.contains("page-break") ||
+            el.style.pageBreakAfter === "always" ||
+            el.style.pageBreakBefore === "always")
+        ) {
+          elementsArray.push(new Paragraph({ pageBreakBefore: true }));
+          continue;
+        }
+
         // Blockquotes parsing
         if (tag === "hr") {
           elementsArray.push(
@@ -1817,9 +1838,9 @@ export async function convertHTMLToDocxBlob(
         document: {
           paragraph: {
             spacing: {
-              line: 276, // 1.15 line spacing for better default spacing readability
+              line: activeCompactNoItalics ? 240 : 276, // 1.0 (single) vs 1.15 line spacing
               lineRule: "auto",
-              after: 120, // 6pt
+              after: activeCompactNoItalics ? 0 : 120, // 0pt vs 6pt spacing
             },
           },
         },

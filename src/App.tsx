@@ -11,6 +11,7 @@ import Header from "./components/Header";
 import HTMLUploader from "./components/HTMLUploader";
 import PreviewPane from "./components/PreviewPane";
 import ErrorBoundary from "./components/ErrorBoundary";
+import FileSequencer from "./components/FileSequencer";
 import {
   Terminal,
   X,
@@ -32,7 +33,7 @@ export default function App() {
   // App parameters configuration
   const [config, setConfig] = useState<ConversionConfig>({
     orientation: "portrait",
-    margins: { top: 1, bottom: 1, left: 1, right: 1 }, // Default 1-inch margins
+    margins: { top: 0.5, bottom: 0.5, left: 0.5, right: 0.5 }, // Default Narrow margins (1.27 cm / 0.5 inch)
     defaultFont: "'Inter', sans-serif",
     banglaFont: "BCC Purno Semibold",
     englishFont: "Cambria Math",
@@ -48,6 +49,11 @@ export default function App() {
   const [downloadPercent, setDownloadPercent] = useState(0);
   const [isDownloading, setIsDownloading] = useState(false);
 
+  // Track multiple selected files for reordering & merging
+  const [selectedFilesForMerge, setSelectedFilesForMerge] = useState<File[]>(
+    [],
+  );
+
   // Clear states
   const handleClear = () => {
     setFileData(null);
@@ -60,6 +66,7 @@ export default function App() {
     setIsDownloading(false);
     setShowLogs(false);
     setValidationErrors([]);
+    setSelectedFilesForMerge([]);
   };
 
   // Safe logging utility
@@ -87,7 +94,11 @@ export default function App() {
 
       // Invoke parser
       const { fileData: parsedData, equations: parsedEqs } =
-        await parseUploadedHTML(file, (percent) => setUploadPercent(percent), skipEq);
+        await parseUploadedHTML(
+          file,
+          (percent) => setUploadPercent(percent),
+          skipEq,
+        );
 
       setFileData(parsedData);
       setEquations(parsedEqs);
@@ -107,7 +118,7 @@ export default function App() {
       appendLog({
         id: "parse-success",
         type: "info",
-        message: skipEq 
+        message: skipEq
           ? `${file.name} ফাইলটি সফলভাবে পড়া ও প্যারামিটারাইজ করা হয়েছে! (সমীকরণ খোঁজা নিষ্ক্রিয় করা হয়েছে)`
           : `${file.name} ফাইলটি সফলভাবে পড়া ও প্যারামিটারাইজ করা হয়েছে! মোট সমীকরণ সনাক্তকরণ: ${parsedEqs.length} টি।`,
         timestamp: new Date().toLocaleTimeString(),
@@ -127,10 +138,116 @@ export default function App() {
     }
   };
 
-  // Perform background parsing when file has been parsed
-  const handleFileSelect = async (file: File) => {
-    setRawFile(file);
-    await parseFile(file, config.skipEquations);
+  // Perform background parsing and merge when multiple files are selected
+  const handleFilesSelect = async (files: File[]) => {
+    if (files.length === 0) return;
+
+    if (files.length === 1) {
+      setRawFile(files[0]);
+      await parseFile(files[0], config.skipEquations);
+    } else {
+      setSelectedFilesForMerge(files);
+    }
+  };
+
+  // Merge selected files in the specified sequence and run parsing
+  const handleMergeAndConvert = async () => {
+    const files = selectedFilesForMerge;
+    if (files.length === 0) return;
+
+    setIsUploading(true);
+    setUploadPercent(5);
+    setLogs([]);
+
+    appendLog({
+      id: "start-merge",
+      type: "info",
+      message: `${files.length} টি ফাইল একত্রিত করা হচ্ছে...`,
+      timestamp: new Date().toLocaleTimeString(),
+    });
+
+    try {
+      // 1. Read all files as text
+      const filePromises = files.map((file) => {
+        return new Promise<string>((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = (ev) => resolve((ev.target?.result as string) || "");
+          r.onerror = () => reject(new Error(`${file.name} ফাইলটি পড়া যায়নি।`));
+          r.readAsText(file);
+        });
+      });
+
+      const htmlTexts = await Promise.all(filePromises);
+      setUploadPercent(20);
+
+      // 2. Merge the HTML contents with high fidelity page break separations
+      let combinedBodyContent = "";
+      for (let i = 0; i < htmlTexts.length; i++) {
+        const text = htmlTexts[i];
+        const name = files[i].name;
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, "text/html");
+        const body = doc.body;
+        const content = body ? body.innerHTML : text;
+
+        if (i > 0) {
+          // Add a div with class "page-break" to separate documents cleanly
+          combinedBodyContent += `\n<div class="page-break" style="page-break-after: always; margin-top: 40px; margin-bottom: 40px;"></div>\n`;
+        }
+
+        // Wrap document content with an identifying div or heading
+        combinedBodyContent += `\n<div class="merged-file-section" data-file-name="${name}">\n`;
+        combinedBodyContent += `<div style="margin-top: 10px; margin-bottom: 15px; color: #475569; font-weight: bold; border-bottom: 1px solid #E2E8F0; padding-bottom: 5px;">[ফাইল: ${name}]</div>\n`;
+        combinedBodyContent += `${content}\n</div>\n`;
+      }
+
+      const mergedHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Compiled Document</title>
+</head>
+<body>
+  ${combinedBodyContent}
+</body>
+</html>`;
+
+      // 3. Create a single combined file representation
+      const firstFileName = files[0].name.replace(/\.[^/.]+$/, "");
+      const mergedFileName =
+        files.length > 1
+          ? `${firstFileName}_এবং_অন্যান্য_একত্রিত.html`
+          : files[0].name;
+
+      const mergedFile = new File([mergedHtml], mergedFileName, {
+        type: "text/html",
+      });
+      setRawFile(mergedFile);
+
+      // 4. Parse the combined file
+      await parseFile(mergedFile, config.skipEquations);
+
+      appendLog({
+        id: "merge-success",
+        type: "info",
+        message: `${files.length} টি ফাইল সফলভাবে একত্রিত করে প্রসেস করা হয়েছে!`,
+        timestamp: new Date().toLocaleTimeString(),
+      });
+
+      // Clear sequencing queue to switch to Preview
+      setSelectedFilesForMerge([]);
+    } catch (err: any) {
+      setIsUploading(false);
+      setUploadPercent(0);
+      appendLog({
+        id: "merge-fail",
+        type: "error",
+        message: "একাধিক ফাইল একত্রিত করতে ব্যর্থতা ঘটেছে!",
+        timestamp: new Date().toLocaleTimeString(),
+        details: err.message || "Unknown error during file merge.",
+      });
+    }
   };
 
   // Re-parse when skipEquations option is toggled
@@ -316,15 +433,25 @@ export default function App() {
             <PreviewPane
               fileData={fileData}
               config={config}
-              onChangeConfig={(newCfg) => setConfig((prev) => ({ ...prev, ...newCfg }))}
+              onChangeConfig={(newCfg) =>
+                setConfig((prev) => ({ ...prev, ...newCfg }))
+              }
               onDownload={handleDownloadDOCX}
               isDownloading={isDownloading}
               downloadProgress={downloadPercent}
             />
           </ErrorBoundary>
+        ) : selectedFilesForMerge.length > 0 ? (
+          <FileSequencer
+            files={selectedFilesForMerge}
+            onReorder={setSelectedFilesForMerge}
+            onMerge={handleMergeAndConvert}
+            onCancel={() => setSelectedFilesForMerge([])}
+            isLoading={isUploading}
+          />
         ) : (
           <HTMLUploader
-            onFileSelect={handleFileSelect}
+            onFilesSelect={handleFilesSelect}
             isLoading={isUploading}
             progress={uploadPercent}
           />

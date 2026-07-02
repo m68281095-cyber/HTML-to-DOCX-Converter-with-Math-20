@@ -30,6 +30,7 @@ export interface ConversionConfig {
   title: string;
   forceBlackText?: boolean;
   skipEquations?: boolean;
+  compactNoItalics?: boolean;
 }
 
 export interface ConversionLog {
