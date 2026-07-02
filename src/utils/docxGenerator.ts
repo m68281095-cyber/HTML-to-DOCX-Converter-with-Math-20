@@ -1209,6 +1209,7 @@ export async function convertHTMLToDocxBlob(
     nodes: Node[],
     parentStyle: ElementStyle,
     elementsArray: any[],
+    isInTable: boolean = false,
   ): Promise<void> {
     let inlineBuffer: Node[] = [];
 
@@ -1257,7 +1258,9 @@ export async function convertHTMLToDocxBlob(
           new Paragraph({
             children: textRuns,
             alignment: parentStyle.alignment,
-            spacing: { before: 60, after: 120 },
+            spacing: isInTable
+              ? { before: 0, after: 0 }
+              : { before: 60, after: 120 },
           }),
         );
       }
@@ -1461,6 +1464,7 @@ export async function convertHTMLToDocxBlob(
               Array.from(el.childNodes),
               currentStyle,
               elementsArray,
+              isInTable,
             );
             continue;
           }
@@ -1505,14 +1509,18 @@ export async function convertHTMLToDocxBlob(
               indent: styles.indentLeft
                 ? { left: styles.indentLeft }
                 : undefined,
-              spacing: {
-                before:
-                  styles.spacingBefore !== undefined
-                    ? styles.spacingBefore
-                    : 80,
-                after:
-                  styles.spacingAfter !== undefined ? styles.spacingAfter : 160,
-              },
+              spacing: isInTable
+                ? { before: 0, after: 0 }
+                : {
+                    before:
+                      styles.spacingBefore !== undefined
+                        ? styles.spacingBefore
+                        : 80,
+                    after:
+                      styles.spacingAfter !== undefined
+                        ? styles.spacingAfter
+                        : 160,
+                  },
             }),
           );
           continue;
@@ -1644,6 +1652,7 @@ export async function convertHTMLToDocxBlob(
                 Array.from(cell.childNodes),
                 cellStyle,
                 cellChildren,
+                true,
               );
 
               if (cellChildren.length === 0) {
@@ -1662,10 +1671,10 @@ export async function convertHTMLToDocxBlob(
 
               // Margin cell pads
               const paddingTwips = {
-                top: 150,
-                bottom: 150,
-                left: 200,
-                right: 200,
+                top: 0,
+                bottom: 0,
+                left: 0,
+                right: 0,
               };
 
               cells.push(
