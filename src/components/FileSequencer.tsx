@@ -8,6 +8,7 @@ import {
   FileCode,
   Combine,
   Layers,
+  ArrowDownAZ,
 } from "lucide-react";
 
 interface FileSequencerProps {
@@ -68,6 +69,13 @@ export default function FileSequencer({
     }
   };
 
+  const sortAlphabetically = () => {
+    const sorted = [...files].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" })
+    );
+    onReorder(sorted);
+  };
+
   const formatSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -98,9 +106,21 @@ export default function FileSequencer({
             </p>
           </div>
         </div>
-        <span className="self-start md:self-center bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-indigo-100">
-          মোট ফাইল: {files.length} টি
-        </span>
+        <div className="flex flex-wrap items-center gap-2 self-start md:self-center">
+          <button
+            type="button"
+            onClick={sortAlphabetically}
+            disabled={isLoading || files.length <= 1}
+            className="flex items-center space-x-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold px-3 py-1.5 rounded-lg border border-indigo-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            title="ফাইলগুলো নাম অনুযায়ী (A to Z) সাজান"
+          >
+            <ArrowDownAZ className="h-3.5 w-3.5 text-indigo-600" />
+            <span>A to Z সাজান</span>
+          </button>
+          <span className="bg-slate-50 text-slate-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-200">
+            মোট ফাইল: {files.length} টি
+          </span>
+        </div>
       </div>
 
       {/* Files list */}
@@ -122,9 +142,9 @@ export default function FileSequencer({
 
                 <FileCode className="h-8 w-8 text-blue-500 shrink-0" />
 
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 pr-2">
                   <p
-                    className="text-sm font-semibold text-slate-800 truncate"
+                    className="text-sm font-semibold text-slate-800 break-all"
                     title={file.name}
                   >
                     {file.name}
