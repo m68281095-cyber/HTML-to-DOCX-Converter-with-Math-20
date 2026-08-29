@@ -1,5 +1,5 @@
 import { useRef, useEffect, useMemo } from "react";
-import { Eye, FileCode, CheckCircle, Smartphone, Monitor } from "lucide-react";
+import { Eye, EyeOff, FileCode, CheckCircle, Smartphone, Monitor, Zap, FileText, CheckCircle2, Download, AlertTriangle } from "lucide-react";
 import { ConversionConfig, HTMLFileData } from "../types";
 import renderMathInElement from "katex/contrib/auto-render";
 
@@ -77,7 +77,7 @@ export default function PreviewPane({
 
   // Dynamic on-the-fly HTML gray-to-black optimization and script-specific styles for pixel-perfect preview matches
   const processedContent = useMemo(() => {
-    if (!fileData?.sanitizedContent) return "";
+    if (config.disablePreview || !fileData?.sanitizedContent) return "";
 
     try {
       const parser = new DOMParser();
@@ -232,7 +232,7 @@ export default function PreviewPane({
       console.error("DOM Parsing failed during processedContent generation:", err);
       return fileData.sanitizedContent;
     }
-  }, [fileData?.sanitizedContent, config.forceBlackText, config.arabicFont, config.arabicFontSize, config.banglaFont, config.banglaFontSize, config.skipEquations]);
+  }, [fileData?.sanitizedContent, config.disablePreview, config.forceBlackText, config.arabicFont, config.arabicFontSize, config.banglaFont, config.banglaFontSize, config.skipEquations]);
 
   const syncScrollLeft = () => {
     if (trackingRef.current === "right") return;
@@ -319,7 +319,7 @@ export default function PreviewPane({
     <div className={`flex flex-col flex-1 h-auto lg:h-[calc(100vh-112px)] min-h-[500px] ${config.theme === "dark" ? "bg-slate-900" : "bg-[#F8F9FA]"}`}>
       {/* Mini control strip */}
       <div className={`flex items-center justify-between border-b px-6 py-2 shrink-0 select-none ${config.theme === "dark" ? "bg-slate-800 border-slate-700" : "bg-white border-gray-300"}`}>
-        <div className="flex items-center space-x-3 text-xs">
+        <div className="flex flex-wrap items-center space-x-3 text-xs">
           <span className="flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
           <p className={`font-bold uppercase tracking-wider font-mono ${config.theme === "dark" ? "text-gray-305" : "text-gray-750"}`}>
             File: {fileData.name} ({Math.round(fileData.size / 1024)} KB)
@@ -332,6 +332,28 @@ export default function PreviewPane({
           }`}>
             Equations: {config.skipEquations ? "Ignored / Disabled" : `${fileData.equationsCount} detected`}
           </span>
+
+          <button
+            type="button"
+            onClick={() => onChangeConfig({ disablePreview: !config.disablePreview })}
+            className={`flex items-center space-x-1.5 px-3 py-1 rounded text-xs font-bold transition-all border ${
+              config.disablePreview
+                ? "bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200"
+                : "bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200"
+            }`}
+          >
+            {config.disablePreview ? (
+              <>
+                <EyeOff className="h-3.5 w-3.5 text-amber-700" />
+                <span>প্রিভিউ বন্ধ (Fast Mode)</span>
+              </>
+            ) : (
+              <>
+                <Eye className="h-3.5 w-3.5 text-blue-600" />
+                <span>লাইভ প্রিভিউ চালু</span>
+              </>
+            )}
+          </button>
         </div>
 
         {/* Download Action with Geometric Balance Styling */}
@@ -609,8 +631,92 @@ export default function PreviewPane({
         </div>
       </div>
 
-      {/* Side by side Preview workspace */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 flex-1 lg:overflow-hidden lg:h-full h-auto">
+      {/* Workspace Area: Conditional rendering based on disablePreview */}
+      {config.disablePreview ? (
+        <div className="flex-1 overflow-y-auto p-6 md:p-10 flex flex-col items-center justify-center bg-slate-100/70 dark:bg-slate-900 select-none">
+          <div className="max-w-2xl w-full bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-8 shadow-lg">
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="p-3 bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 rounded-xl">
+                <Zap className="h-7 w-7" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                    হাই-পারফরম্যান্স ফাষ্ট মোড (Fast Mode Enabled)
+                  </h3>
+                  <span className="bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-200 text-xs px-2.5 py-0.5 rounded-full font-mono font-bold">
+                    Zero UI Lag
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  ব্রাউজার ফ্রিজ হওয়া রোধ করতে সরাসরি ভারী ডম রেন্ডারিং ও প্রিভিউ বন্ধ রাখা হয়েছে।
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">ফাইল সাইজ & মেমোরি</span>
+                <p className="text-lg font-extrabold text-slate-800 dark:text-slate-200 mt-1 font-mono">
+                  {Math.round(fileData.size / 1024)} KB
+                </p>
+                <span className="text-xs text-slate-500">{fileData.name}</span>
+              </div>
+
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">গাণিতিক সমীকরণ (Math Hits)</span>
+                <p className="text-lg font-extrabold text-blue-600 dark:text-blue-400 mt-1 font-mono">
+                  {config.skipEquations ? "0 (Skipped)" : `${fileData.equationsCount} টি সনাক্ত`}
+                </p>
+                <span className="text-xs text-slate-500">
+                  {config.skipEquations ? "সমীকরণ খোঁজা নিষ্ক্রিয়" : "Native MathXML এ সরাসরি কনভার্ট হবে"}
+                </span>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl border border-blue-100 dark:border-slate-700 bg-blue-50/50 dark:bg-slate-800/40 mb-8 space-y-2 text-xs">
+              <div className="flex justify-between items-center text-slate-700 dark:text-slate-300">
+                <span className="font-semibold">পেজ ওরিয়েন্টেশন:</span>
+                <span className="font-mono font-bold capitalize">{config.orientation}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-700 dark:text-slate-300">
+                <span className="font-semibold">বাংলা ফন্ট:</span>
+                <span className="font-bold">{config.banglaFont}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-700 dark:text-slate-300">
+                <span className="font-semibold">ইংরেজি / ম্যাথ ফন্ট:</span>
+                <span className="font-bold">{config.englishFont}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-700 dark:text-slate-300">
+                <span className="font-semibold">টেক্সট কালার মোড:</span>
+                <span className="font-bold">{config.forceBlackText ? "গভীর কালো (Force Black)" : "অরিজিনাল এইচটিএমএল কালার"}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => onChangeConfig({ disablePreview: false })}
+                className="flex items-center space-x-2 text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 font-semibold px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <Eye className="h-4 w-4 text-blue-600" />
+                <span>জোড়পূর্বক লাইভ প্রিভিউ দেখুন</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={onDownload}
+                disabled={isDownloading}
+                className="flex items-center justify-center space-x-2 w-full sm:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow-md transition-all cursor-pointer"
+              >
+                <Download className="h-5 w-5" />
+                <span>{isDownloading ? `ডকএক্স প্যাক হচ্ছে (${downloadProgress}%)...` : "সরাসরি DOCX ফাইল প্যাক করুন"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 flex-1 lg:overflow-hidden lg:h-full h-auto">
         
         {/* Left Side: Live HTML Input preview */}
         <div className="flex flex-col border-b lg:border-b-0 lg:border-r border-gray-300 h-auto lg:h-full lg:overflow-hidden select-none bg-white font-sans">
@@ -692,8 +798,8 @@ export default function PreviewPane({
             </div>
           </div>
         </div>
-
       </div>
-    </div>
+    )}
+  </div>
   );
 }

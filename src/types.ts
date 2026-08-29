@@ -31,6 +31,7 @@ export interface ConversionConfig {
   forceBlackText?: boolean;
   skipEquations?: boolean;
   compactNoItalics?: boolean;
+  disablePreview?: boolean;
 }
 
 export interface ConversionLog {

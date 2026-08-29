@@ -1,13 +1,16 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Upload, FileCode, CheckCircle, AlertCircle, HelpCircle, ClipboardPaste } from "lucide-react";
+import { Upload, FileCode, CheckCircle, AlertCircle, HelpCircle, ClipboardPaste, EyeOff, Zap, ShieldAlert } from "lucide-react";
+import { ConversionConfig } from "../types";
 
 interface HTMLUploaderProps {
   onFilesSelect: (files: File[]) => void;
   isLoading: boolean;
   progress: number;
+  config: ConversionConfig;
+  onChangeConfig: (cfg: Partial<ConversionConfig>) => void;
 }
 
-export default function HTMLUploader({ onFilesSelect, isLoading, progress }: HTMLUploaderProps) {
+export default function HTMLUploader({ onFilesSelect, isLoading, progress, config, onChangeConfig }: HTMLUploaderProps) {
   const [isDragActive, setIsDragActive] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -214,6 +217,62 @@ export default function HTMLUploader({ onFilesSelect, isLoading, progress }: HTM
         <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-slate-600 md:text-base">
           যেকোনো টেইলউইন্ড সিএসএস স্টাইল সমৃদ্ধ এইচটিএমএল ফাইল নির্বাচন বা ড্র্যাগ করুন। ফাইলটির মধ্যকার সমস্ত জটিল সমীকরণ স্বয়ংক্রিয়ভাবে মাইক্রোসফট ওয়ার্ডের এডিটেবল চরিত্রে রূপান্তরিত হবে।
         </p>
+      </div>
+
+      {/* Pre-Upload Options (Large File Performance Mode / Disable Live Preview) */}
+      <div className="mb-6 rounded-xl border border-amber-200/80 bg-amber-50/60 p-4 shadow-sm select-none">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-start space-x-3">
+            <div className="p-2 bg-amber-100 text-amber-800 rounded-lg shrink-0 mt-0.5">
+              <Zap className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-amber-950">
+                  ফাইল আপলোডের পূর্ববর্তী পারফরম্যান্স সেটিংস (Pre-Upload Settings)
+                </h3>
+                <span className="bg-amber-200/70 text-amber-900 text-[10px] font-mono px-2 py-0.5 rounded font-bold">
+                  High Efficiency
+                </span>
+              </div>
+              <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+                আপনার ফাইলটি কি অনেক বড় (যেমন: ১ মেগাবাইটের বেশি বা কয়েক হাজার সমীকরণ)? ব্রাউজার হ্যাং হওয়া এড়াতে আপলোডের আগেই প্রিভিউ বন্ধ রাখতে পারেন।
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-3.5 pt-3 border-t border-amber-200/60 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <label className="flex items-center gap-2.5 font-bold text-slate-800 cursor-pointer bg-white px-3 py-1.5 rounded-lg border border-amber-300/80 shadow-xs hover:bg-amber-50/50 transition-colors">
+            <input
+              type="checkbox"
+              id="pre-upload-disable-preview"
+              checked={!!config.disablePreview}
+              onChange={(e) => onChangeConfig({ disablePreview: e.target.checked })}
+              className="w-4.5 h-4.5 text-amber-600 rounded border-amber-300 focus:ring-amber-500 cursor-pointer"
+            />
+            <EyeOff className="h-4 w-4 text-amber-700" />
+            <span>লাইভ প্রিভিউ বন্ধ রাখুন (Disable Live Preview / Fast Mode)</span>
+          </label>
+
+          <label className="flex items-center gap-2.5 font-bold text-slate-800 cursor-pointer bg-white px-3 py-1.5 rounded-lg border border-amber-300/80 shadow-xs hover:bg-amber-50/50 transition-colors">
+            <input
+              type="checkbox"
+              id="pre-upload-skip-equations"
+              checked={!!config.skipEquations}
+              onChange={(e) => onChangeConfig({ skipEquations: e.target.checked })}
+              className="w-4.5 h-4.5 text-red-600 rounded border-amber-300 focus:ring-red-500 cursor-pointer"
+            />
+            <span className="text-red-700 font-bold">সমীকরণ খুঁজবেন না (Skip Math Equations)</span>
+          </label>
+
+          {config.disablePreview && (
+            <span className="text-[11px] font-mono font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded flex items-center gap-1">
+              <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+              ফাষ্ট প্রসেসিং মোড অ্যাক্টিভ (ব্রাউজার ফ্রিজ হবে না)
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Main Drag & Drop Zone */}

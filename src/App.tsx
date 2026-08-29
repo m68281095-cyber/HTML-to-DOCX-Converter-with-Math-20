@@ -103,6 +103,17 @@ export default function App() {
       setFileData(parsedData);
       setEquations(parsedEqs);
 
+      // Auto-enable Fast Mode / Disable Preview for large files (>1.5MB or >2000 equations) to prevent browser freezes
+      if (parsedData.size > 1.5 * 1024 * 1024 || parsedEqs.length > 2000) {
+        setConfig((prev) => ({ ...prev, disablePreview: true }));
+        appendLog({
+          id: "fast-mode-auto",
+          type: "info",
+          message: "বড় ফাইলের পারফরম্যান্স মোড: ফাইলটির আকার বা সমীকরণের সংখ্যা বেশি হওয়ায় ব্রাউজার হ্যাং হওয়া এড়াতে স্বয়ংক্রিয়ভাবে লাইভ প্রিভিউ বন্ধ রাখা হয়েছে।",
+          timestamp: new Date().toLocaleTimeString(),
+        });
+      }
+
       const errors = validateHTMLPreparse(parsedData.content);
       setValidationErrors(errors);
       if (errors.length > 0) {
@@ -454,6 +465,10 @@ export default function App() {
             onFilesSelect={handleFilesSelect}
             isLoading={isUploading}
             progress={uploadPercent}
+            config={config}
+            onChangeConfig={(newCfg) =>
+              setConfig((prev) => ({ ...prev, ...newCfg }))
+            }
           />
         )}
       </main>
